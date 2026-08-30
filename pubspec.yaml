@@ -1,0 +1,28 @@
+name: universal_reader
+description: "Universal Reader - A powerful cross-format document and media reader built with Flutter."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  pdfx: ^2.6.0
+  flutter_markdown: ^0.7.4+3
+  csv: ^6.0.0
+  file_picker: ^8.1.4
+  archive: ^3.6.1
+  xml: ^6.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
