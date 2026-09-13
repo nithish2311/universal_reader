@@ -12,25 +12,37 @@ import java.io.FileOutputStream
 class MainActivity: FlutterActivity() {
     private val channelName = "app.channel.shared.data"
     private var sharedFilePath: String? = null
+    private var methodChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
         handleIntent(intent)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
+        methodChannel?.setMethodCallHandler { call, result ->
             if (call.method == "getSharedFilePath") {
                 result.success(sharedFilePath)
                 sharedFilePath = null
             } else if (call.method == "shareFile") {
                 val path = call.argument<String>("path")
                 if (path != null) {
-                    val file = File(path)
-                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "*/*"
-                        putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file))
+                    try {
+                        val file = File(path)
+                        val contentUri = androidx.core.content.FileProvider.getUriForFile(
+                            this,
+                            "${applicationContext.packageName}.fileprovider",
+                            file
+                        )
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "*/*"
+                            putExtra(Intent.EXTRA_STREAM, contentUri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        startActivity(Intent.createChooser(shareIntent, "Share File"))
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("SHARE_ERROR", e.localizedMessage, null)
                     }
-                    startActivity(Intent.createChooser(shareIntent, "Share File"))
-                    result.success(true)
                 } else {
                     result.error("ERROR", "Path null", null)
                 }
@@ -43,6 +55,10 @@ class MainActivity: FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
+        sharedFilePath?.let { path ->
+            methodChannel?.invokeMethod("onFileOpened", path)
+            sharedFilePath = null
+        }
     }
 
     private fun handleIntent(intent: Intent?) {
